@@ -63,6 +63,7 @@ export async function getQdrantPoints(
   return chunks.map((chunk, index) => ({
     id: uuid(),
     vector: embeddings[index],
+    pageContent: chunk.pageContent,
     metadata: chunk.metadata,
   }));
 }
