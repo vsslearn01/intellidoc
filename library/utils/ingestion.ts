@@ -10,11 +10,12 @@ import { v4 as uuid } from 'uuid';
 export async function getDocuments(files: string[]): Promise<Document[]> {
   const documents: Document[] = [];
   for (const file of files) {
-    const pageContent = await getPageContent(file);
+    const { pageContent, info } = await getPageContent(file);
     documents.push(
       new Document({
         pageContent: pageContent,
-        metadata: { source: file },
+        // [IMPORTANT]: Add the source of the document to the metadata for future reference
+        metadata: { source: file, ...info },
       }),
     );
   }
@@ -38,7 +39,7 @@ export async function getChunks(
   return chunks;
 }
 
-export async function getEmbeddings(
+export async function embedChunks(
   chunks: Document[],
   model?: string,
 ): Promise<number[][]> {
@@ -52,14 +53,14 @@ export async function getEmbeddings(
   return response.embeddings;
 }
 
-export async function getQdrantPoints(
+export async function indexDocuments(
   chunks: Document[],
   model?: string,
 ): Promise<unknown[]> {
   if (!chunks || !Array.isArray(chunks) || chunks.length === 0) {
     throw new Error('Chunks must be a non-empty array');
   }
-  const embeddings = await getEmbeddings(chunks, model);
+  const embeddings = await embedChunks(chunks, model);
   return chunks.map((chunk, index) => ({
     id: uuid(),
     vector: embeddings[index],
@@ -70,13 +71,20 @@ export async function getQdrantPoints(
   }));
 }
 
-async function getPageContent(file: string): Promise<string> {
+async function getPageContent(
+  file: string,
+): Promise<{ pageContent: string; info: Record<string, string | number> }> {
   const extention = file.split('.').pop();
   if (extention === 'pdf') {
     const parser = new PDFParse({ url: file });
     const result = await parser.getText();
+    const info = await parser.getInfo();
     await parser.destroy();
-    return result.text;
+    return {
+      pageContent: result.text,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      info: { ...(info?.info || {}), total: info?.total },
+    };
   } else {
     throw new Error(`Unsupported file type: ${extention}`);
   }

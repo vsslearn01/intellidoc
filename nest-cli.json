@@ -5,7 +5,14 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "webpack": true,
-    "tsConfigPath": "apps/reader/tsconfig.app.json"
+    "tsConfigPath": "apps/reader/tsconfig.app.json",
+    "assets": [
+      {
+        "include": "assets/**/*",
+        "outDir": "dist/assets",
+        "watchAssets": true
+      }
+    ]
   },
   "monorepo": true,
   "root": "apps/reader",
